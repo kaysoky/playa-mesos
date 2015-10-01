@@ -1,4 +1,4 @@
-# Playa Mesos x4
+# Playa Mesos x4 (+ SSL)
 
 Playa Mesos helps you quickly create [Apache Mesos](http://mesos.apache.org/)
 test environments.  A VirtualBox image, which has Mesos, Marathon, and Chronos
@@ -49,6 +49,7 @@ is built from source using Packer.
   ```
 
 10. Do stuff
+
   Mesos Web UI: [10.141.141.10:5050](http://10.141.141.10:5050)
 
   Marathon Web UI: [10.141.141.10:8080](http://10.141.141.10:8080)

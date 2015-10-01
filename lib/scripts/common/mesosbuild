@@ -36,7 +36,7 @@ function install_with_apt {
   # Fetch Mesos dependencies.
   apt_ git
   apt_ autoconf libtool
-  apt_ build-essential python-dev python-boto libcurl4-nss-dev libsasl2-dev maven libapr1-dev libsvn-dev
+  apt_ build-essential python-dev python-boto libcurl4-nss-dev libsasl2-dev maven libapr1-dev libsvn-dev libevent-dev libssl-dev
 
   # Fetch my branch.
   git clone https://github.com/kaysoky/mesos.git
@@ -46,7 +46,7 @@ function install_with_apt {
   ./bootstrap
   mkdir build
   cd build
-  ../configure --disable-python --disable-java
+  ../configure --disable-python --disable-java --enable-libevent --enable-ssl
   make -j8
   make -j8 check
   make install
