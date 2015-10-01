@@ -1,11 +1,13 @@
 require 'json'
 require 'pathname'
 require 'uri'
+require 'ipaddr'
 
 class PlayaSettings
   attr_reader :settings_file
 
   def initialize(settings_file)
+    @ip_address = false
     @settings_file = settings_file
     @settings = read_user_settings(settings_file)
   end
@@ -15,6 +17,17 @@ class PlayaSettings
       return @settings[sym.to_s]
     else
       super(sym, *args, &block)
+    end
+  end
+
+  def ip_address!
+    if @ip_address
+      base, sep, tail = @ip_address.rpartition('.')
+      @ip_address = base + sep + (tail.to_i + 1)
+      return @ip_address
+    else
+      @ip_address = @settings['ip_address']
+      return @ip_address
     end
   end
 

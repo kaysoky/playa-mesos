@@ -9,10 +9,12 @@ declare -r pm_root="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 # Requirements
 declare -r min_vbox_ver=4.2
 declare -r min_vagrant_ver=1.3
+declare -r min_packer_ver=0.5
 
 # Ensure required commands are available
 assert_raises "hash vagrant" 0
 assert_raises "hash VBoxManage" 0
+assert_raises "hash packer" 0
 assert_raises "hash bc" 0
 assert_raises "hash sed" 0
 
@@ -29,5 +31,10 @@ assert bc "1" "${vbox_ver}>=${min_vbox_ver}"
 declare -r vagrant_ver=$(vagrant --version|sed 's/Vagrant \([0-9]*\.[0-9]*\).*/\1/')
 echo "Vagrant version discovered: ${vagrant_ver}"
 assert bc "1" "${vagrant_ver}>=${min_vagrant_ver}"
+
+# Check Packer Version
+declare -r packer_ver=$(packer --version|sed 's/\([0-9]*\.[0-9]*\).*/\1/')
+echo "Packer version discovered: ${packer_ver}"
+assert bc "1" "${packer_ver}>=${min_packer_ver}"
 
 assert_end playa-mesos

@@ -1,0 +1,80 @@
+#!/bin/bash
+set -o errexit -o nounset -o pipefail
+function -h {
+cat <<USAGE
+  USAGE: mesosconfigure (--master-hostname <MASTER_HOSTNAME>)?
+                        (--slave-hostname <SLAVE_HOSTNAME>)?
+
+  Install and configure Mesos with Zookeeper support.
+
+USAGE
+}; function --help { -h ;}
+
+function main {
+  options "$@"
+  configure_slave
+  restart_services
+};
+
+function options {
+  while [[ ${1:+isset} ]]
+  do
+    case "$1" in
+      --master-hostname) master_hostname="$2" ; shift ;;
+      --slave-hostname)  slave_hostname="$2"  ; shift ;; # See: MESOS-825
+      --*)               err "No such option: $1" ;;
+    esac
+    shift
+  done
+}
+
+function configure_master {
+  if [[ ${master_hostname+isset} ]]
+  then
+    mkdir -p /etc/mesos-master
+    echo "$master_hostname" > /etc/mesos-master/hostname
+
+    mkdir -p /etc/marathon/conf
+    echo "$master_hostname" > /etc/marathon/conf/hostname
+  fi
+}
+
+function configure_slave {
+  if [[ ${slave_hostname+isset} ]]
+  then
+    mkdir -p /etc/mesos-slave
+    echo "$slave_hostname" > /etc/mesos-slave/hostname
+    echo "docker,mesos" > /etc/mesos-slave/containerizers
+    echo "5mins" > /etc/mesos-slave/executor_registration_timeout
+  fi
+}
+
+function restart_services {
+  if [[ ${master_hostname+isset} ]]
+  then
+    as_root service marathon restart
+    as_root service chronos restart
+    as_root service mesos-master restart
+  fi
+
+  if [[ ${slave_hostname+isset} ]]
+  then
+    as_root service mesos-slave restart
+  fi
+}
+
+function as_root {
+  if [[ $(id -u) = 0 ]]
+  then "$@"
+  else sudo "$@"
+  fi
+}
+
+function msg { out "$*" >&2 ;}
+function err { local x=$? ; msg "$*" ; return $(( $x == 0 ? 1 : $x )) ;}
+function out { printf '%s\n' "$*" ;}
+
+if [[ ${1:-} ]] && declare -F | cut -d' ' -f3 | fgrep -qx -- "${1:-}"
+then "$@"
+else main "$@"
+fi

@@ -45,13 +45,13 @@
           "modifyvm",
           "{{.Name}}",
           "--memory",
-          "384"
+          "12288"
         ],
         [
           "modifyvm",
           "{{.Name}}",
           "--cpus",
-          "1"
+          "6"
         ]
       ],
       "virtualbox_version_file": ".vbox_version",
@@ -75,20 +75,8 @@
         "{{user `scripts`}}/common/vagrant",
         "{{user `scripts`}}/common/vmtools-virtualbox",
         "{{user `scripts`}}/ubuntu/python-tools",
-        "{{user `scripts`}}/ubuntu/java"
-      ],
-      "type": "shell"
-    },
-    {
-      "execute_command": "echo 'vagrant'|{{.Vars}} sudo -S -E bash '{{.Path}}' --slave-hostname {{user `ip_address`}}",
-      "scripts": [
-        "{{user `scripts`}}/common/mesosflexinstall"
-      ],
-      "type": "shell"
-    },
-    {
-      "execute_command": "echo 'vagrant'|{{.Vars}} sudo -S -E bash '{{.Path}}'",
-      "scripts": [
+        "{{user `scripts`}}/ubuntu/java",
+        "{{user `scripts`}}/common/mesosbuild",
         "{{user `scripts`}}/ubuntu/cleanup",
         "{{user `scripts`}}/common/minimize"
       ],

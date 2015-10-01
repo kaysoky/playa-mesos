@@ -1,21 +1,5 @@
 #!/bin/bash
 set -o errexit -o nounset -o pipefail
-function -h {
-cat <<USAGE
- USAGE: mesosflexinstall (--rel <mesos-version>)?
-                         (--slave-hostname <SLAVE_HOSTNAME>)?
-
-  Install and configure Mesos with Zookeeper support.
-
-USAGE
-}; function --help { -h ;}
-
-
-function main {
-  options "$@"
-  install_mesos
-  configure_slave
-}
 
 function globals {
   export LC_ALL=en_US.UTF-8
@@ -28,34 +12,12 @@ function global {
   done
 }
 
-function options {
-  while [[ ${1:+isset} ]]
-  do
-    case "$1" in
-      --rel)            rel="$2"                 ; shift ;;
-      --slave-hostname) slave_hostname="$2"      ; shift ;; # See: MESOS-825
-      --*)              err "No such option: $1" ;;
-    esac
-    shift
-  done
-}
-
 function install_mesos {
   global os_release
   case "$os_release" in
     ubuntu/14.04)      install_with_apt "trusty" ;;
     *)                 err "No support for $os_release at this time." ;;
   esac
-}
-
-function configure_slave {
-  if [[ ${slave_hostname+isset} ]]
-  then
-    mkdir -p /etc/mesos-slave
-    echo "$slave_hostname" > /etc/mesos-slave/hostname
-    echo "docker,mesos" > /etc/mesos-slave/containerizers
-    echo "5mins" > /etc/mesos-slave/executor_registration_timeout
-  fi
 }
 
 function install_apt_source {
@@ -70,21 +32,35 @@ function install_with_apt {
 
   apt_ curl unzip
   install_apt_source $1
-  install_docker
-  apt_ zookeeperd zookeeper zookeeper-bin $mesos_rel marathon chronos
-  as_root sed -i '$acomplete -F _docker docker' /etc/bash_completion.d/docker
-  restart_services
-}
 
-function install_docker {
-  as_root curl -sSL https://get.docker.com/ | sh
-}
+  # Fetch Mesos dependencies.
+  apt_ git
+  apt_ autoconf libtool
+  apt_ build-essential python-dev python-boto libcurl4-nss-dev libsasl2-dev maven libapr1-dev libsvn-dev
 
-function restart_services {
-  as_root service marathon restart
-  as_root service chronos restart
-  as_root service mesos-slave restart
-  as_root service mesos-master restart
+  # Fetch my branch.
+  git clone https://github.com/kaysoky/mesos.git
+
+  # Default build instructions.
+  cd mesos
+  ./bootstrap
+  mkdir build
+  cd build
+  ../configure --disable-python --disable-java
+  make -j8
+  make -j8 check
+  make install
+
+  apt_ zookeeperd zookeeper zookeeper-bin docker.io marathon chronos
+
+  as_root ln -sf /usr/bin/docker.io /usr/local/bin/docker
+  as_root sed -i '$acomplete -F _docker docker' /etc/bash_completion.d/docker.io
+
+  # Stop any services.  We don't want to run anything yet.
+  as_root service marathon stop
+  as_root service chronos stop
+  as_root service mesos-master stop
+  as_root service mesos-slave stop
 }
 
 function apt_ {
@@ -150,8 +126,4 @@ function msg { out "$*" >&2 ;}
 function err { local x=$? ; msg "$*" ; return $(( $x == 0 ? 1 : $x )) ;}
 function out { printf '%s\n' "$*" ;}
 
-if [[ ${1:-} ]] && declare -F | cut -d' ' -f3 | fgrep -qx -- "${1:-}"
-then "$@"
-else main "$@"
-fi
-
+install_mesos
