@@ -33,6 +33,11 @@ function install_with_apt {
   apt_ curl unzip
   install_apt_source $1
 
+  apt_ zookeeperd zookeeper zookeeper-bin docker.io marathon chronos
+
+  as_root ln -sf /usr/bin/docker.io /usr/local/bin/docker
+  as_root sed -i '$acomplete -F _docker docker' /etc/bash_completion.d/docker.io
+
   # Fetch Mesos dependencies.
   apt_ git
   apt_ autoconf libtool
@@ -47,20 +52,10 @@ function install_with_apt {
   mkdir build
   cd build
   ../configure --disable-python --disable-java --enable-libevent --enable-ssl
-  make -j8
-  make -j8 check
-  make install
+  make -j6
+  as_root make install
 
-  apt_ zookeeperd zookeeper zookeeper-bin docker.io marathon chronos
-
-  as_root ln -sf /usr/bin/docker.io /usr/local/bin/docker
-  as_root sed -i '$acomplete -F _docker docker' /etc/bash_completion.d/docker.io
-
-  # Stop any services.  We don't want to run anything yet.
-  as_root service marathon stop
-  as_root service chronos stop
-  as_root service mesos-master stop
-  as_root service mesos-slave stop
+  as_root ldconfig
 }
 
 function apt_ {
