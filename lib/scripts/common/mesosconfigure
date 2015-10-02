@@ -52,14 +52,18 @@ function configure_slave {
 function restart_services {
   if [[ ${master_hostname+isset} ]]
   then
-    as_root service marathon restart
-    as_root service chronos restart
-    as_root service mesos-master restart
-  fi
+    # as_root service marathon restart
+    # as_root service chronos restart
 
-  if [[ ${slave_hostname+isset} ]]
-  then
-    as_root service mesos-slave restart
+    if [[ "$master_hostname" == "$slave_hostname" ]]
+    then
+      mesos-master --ip="$master_hostname" --work_dir=/home/vagrant/work &
+    fi
+
+    if [[ ${slave_hostname+isset} ]]
+    then
+      mesos-slave --ip="$slave_hostname" --master="$master_hostname:5050" &
+    fi
   fi
 }
 

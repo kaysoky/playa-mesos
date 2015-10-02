@@ -23,7 +23,7 @@ class PlayaSettings
   def ip_address!
     if @ip_address
       base, sep, tail = @ip_address.rpartition('.')
-      @ip_address = base + sep + (tail.to_i + 1)
+      @ip_address = base + sep + (tail.to_i + 1).to_s
       return @ip_address
     else
       @ip_address = @settings['ip_address']

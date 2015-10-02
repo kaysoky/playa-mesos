@@ -34,39 +34,50 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   #    with the command: "vagrant box remove $BOX_NAME"
   config.vm.box_url = pmconf.box_local ? pmconf.box_local : box_url
 
-  (1..pmconf.num_instances).each do |i|
-    ip_address = pmconf.ip_address!
+  master_ip = false
+  (1..pmconf.num_instances.to_i).each do |i|
+    # Rename the box.
+    config.vm.define vm_name = "box-%02d" % [i] do |config|
+      # We'll use this a few times.
+      ip_address = pmconf.ip_address!
 
-    # Create a private network, which allows host-only access to the machine
-    # using a specific IP.
-    config.vm.network :private_network, ip: ip_address
+      # First box acts as the master.
+      if not master_ip
+        master_ip = ip_address
+      end
 
-    # Note: You'll want a decent amount of memory for your mesos master/slave
-    # VM. The strict minimum, at least while the VM is provisioned, is the
-    # amount necessary to compile mesos and the jenkins plugin. 2048m+ is
-    # recommended.  The CPU count can be lowered, but you may run into issues
-    # running the Jenkins Mesos Framework if you do so.
-    config.vm.provider :virtualbox do |vb|
-      vb.name = pmconf.box_name
-      vb.customize ['modifyvm', :id, '--memory', pmconf.vm_ram]
-      vb.customize ['modifyvm', :id, '--cpus',   pmconf.vm_cpus]
-    end
-    config.vm.provider :vmware_fusion do |v|
-      v.vmx['memsize'] = pmconf.vm_ram
-      v.vmx['numvcpus'] = pmconf.vm_cpus
-    end
-    config.vm.provider :vmware_workstation do |v|
-      v.vmx['memsize'] = pmconf.vm_ram
-      v.vmx['numvcpus'] = pmconf.vm_cpus
-    end
+      # Create a private network, which allows host-only access to the machine
+      # using a specific IP.
+      config.vm.network :private_network, ip: ip_address
 
-    config.vm.provision :shell do |shell|
-      shell.path = 'lib/scripts/common/mesosconfigure'
-      arg_array = ['--slave-hostname', ip_address]
+      # Note: You'll want a decent amount of memory for your mesos master/slave
+      # VM. The strict minimum, at least while the VM is provisioned, is the
+      # amount necessary to compile mesos and the jenkins plugin. 2048m+ is
+      # recommended.  The CPU count can be lowered, but you may run into issues
+      # running the Jenkins Mesos Framework if you do so.
+      config.vm.provider :virtualbox do |vb|
+        vb.name = pmconf.box_name
+        vb.customize ['modifyvm', :id, '--memory', pmconf.vm_ram]
+        vb.customize ['modifyvm', :id, '--cpus',   pmconf.vm_cpus]
+      end
+      config.vm.provider :vmware_fusion do |v|
+        v.vmx['memsize'] = pmconf.vm_ram
+        v.vmx['numvcpus'] = pmconf.vm_cpus
+      end
+      config.vm.provider :vmware_workstation do |v|
+        v.vmx['memsize'] = pmconf.vm_ram
+        v.vmx['numvcpus'] = pmconf.vm_cpus
+      end
 
-      # Using an array for shell args requires Vagrant 1.4.0+
-      # TODO: Set as array directly when Vagrant 1.3 support is dropped
-      shell.args = arg_array.join(' ')
+      config.vm.provision :shell do |shell|
+        shell.path = 'lib/scripts/common/mesosconfigure'
+        arg_array = ['--master-hostname', master_ip,
+                     '--slave-hostname', ip_address]
+
+        # Using an array for shell args requires Vagrant 1.4.0+
+        # TODO: Set as array directly when Vagrant 1.3 support is dropped
+        shell.args = arg_array.join(' ')
+      end
     end
   end
 end
